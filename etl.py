@@ -2,42 +2,89 @@ import os
 import glob
 import psycopg2
 import pandas as pd
+from datetime import datetime
 from sql_queries import *
 
 
 def process_song_file(cur, filepath):
+    
     # open song file
-    df = 
+    df = pd.read_json(filepath, lines=True)
 
     # insert song record
-    song_data = 
+    
+    song_data =[]
+    for i in df.loc[:,['song_id','title','artist_id','year','duration']].values.tolist():
+        x = 0 
+        while x < len(i):
+            song_data.append(i[x])
+            x += 1 
+            
     cur.execute(song_table_insert, song_data)
     
     # insert artist record
-    artist_data = 
+    artist_data =[]
+    for i in df.loc[:,['artist_id','artist_name','artist_location','artist_latitude','artist_longitude']].values.tolist():
+        x = 0
+        while x < len(i):
+            artist_data.append(i[x])
+            x +=1
     cur.execute(artist_table_insert, artist_data)
 
 
 def process_log_file(cur, filepath):
     # open log file
-    df = 
+    df = pd.read_json(filepath, lines=True)
 
     # filter by NextSong action
-    df = 
+    df = df[df['page']=='NextSong']
 
     # convert timestamp column to datetime
-    t = 
+    df_ts = df['ts'].apply (lambda x: x/1000)
+    t = df_ts.apply(lambda x: datetime.fromtimestamp(x))
     
     # insert time data records
-    time_data = 
-    column_labels = 
-    time_df = 
+    
+    timestamp = []
+    hour = []
+    day = []
+    week_of_year = []
+    month = []
+    year = []
+    weekday = []
+    
+    for i in t:
+        timestamp.append(datetime.timestamp(i))
+    
+    for i in t:
+        hour.append(i.strftime("%H"))
+        
+    for i in t:
+        day.append(i.strftime("%d"))
+    
+    for i in t:
+        week_of_year.append(i.strftime("%W"))
+    
+    for i in t:
+        month.append(i.strftime("%m"))    
+    
+    for i in t:
+        year.append(i.strftime("%Y"))
+    
+    for i in t:
+        weekday.append(i.strftime("%A"))
+    
+    time_data = [timestamp,hour,day,week_of_year,month,year,weekday]
+    column_labels = ['timestamp','hour','day','weeek_of_year','month','year','weekday']
+    
+    dict_trans = dict(zip(column_labels, time_data))
+    time_df = pd.DataFrame(dict_trans)
 
     for i, row in time_df.iterrows():
         cur.execute(time_table_insert, list(row))
 
     # load user table
-    user_df = 
+    user_df = df[['userId','firstName','lastName','gender','level']]
 
     # insert user records
     for i, row in user_df.iterrows():
@@ -51,7 +98,7 @@ def process_log_file(cur, filepath):
         songid, artistid = results if results else None, None
 
         # insert songplay record
-        songplay_data = 
+        songplay_data = [index,row.ts,row.userId,row.level,songid,artistid,row.sessionId,row.location,row.userAgent]
         cur.execute(songplay_table_insert, songplay_data)
 
 
